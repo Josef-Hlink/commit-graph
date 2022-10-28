@@ -1,3 +1,4 @@
+import argparse
 import requests
 from bs4 import BeautifulSoup
 import pandas as pd
@@ -8,10 +9,16 @@ from scipy.signal import savgol_filter
 
 
 def main() -> None:
-    username = 'Josef-Hlink'
+    
+    parser = argparse.ArgumentParser()
+    parser.add_argument('username', type=str, help='Github username')
+    args = parser.parse_args()
+    username = args.username
+
     contributions = get_contributions(username)
-    plot = plot_contributions(contributions)
+    plot = plot_contributions(contributions, username)
     plot.savefig('contributions.png', dpi=300)
+    
     return
 
 
@@ -41,7 +48,7 @@ def get_contributions(username: str) -> pd.DataFrame:
     return contributions
 
 
-def plot_contributions(contributions: pd.DataFrame) -> plt.Figure:
+def plot_contributions(contributions: pd.DataFrame, username: str) -> plt.Figure:
     """ Create a violinplot where each day of the week is a body  """
     
     contributions['day_of_week'] = contributions.index.dayofweek
@@ -56,8 +63,11 @@ def plot_contributions(contributions: pd.DataFrame) -> plt.Figure:
 
     ax.set_xticks(range(1, 8))
     ax.set_xticklabels(['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'])
-    ax.set_yticks(range(0, 15, 3))
-    ax.set_title('Contributions per day of week')
+    ax.set_ylabel('contributions')
+    max_c = contributions['contributions'].max()
+    stepsize = max(max_c // 5, 1)
+    ax.set_yticks(range(0, max_c, stepsize))
+    ax.set_title(f'Contributions per day of week ({username})')
     fig.tight_layout()
 
     return fig
