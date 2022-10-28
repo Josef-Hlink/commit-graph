@@ -18,6 +18,7 @@ def main() -> None:
 def get_contributions(username: str) -> pd.DataFrame:
     """ For a username, get the contributions for last year in the form of a pandas DataFrame """
     
+    # get contribution graph data
     url = f'https://github.com/{username}'
     html = requests.get(url).text
     soup = BeautifulSoup(html, 'html.parser')
@@ -27,6 +28,7 @@ def get_contributions(username: str) -> pd.DataFrame:
     contributions = pd.DataFrame(columns=['contributions'], dtype='int64')
     contributions.index.name = 'date'
 
+    # create dataframe
     for item in data:
         n_contributions = int(item.get('data-count', default=0))
         date = item.get('data-date')
@@ -47,6 +49,23 @@ def plot_contributions(contributions: pd.DataFrame) -> plt.Figure:
 
     # create figure
     fig, ax = plt.subplots(figsize=(5, 3))
+
+    ax = add_violins(ax, data)
+    ax = add_raw_data(ax, data)
+    ax = add_means(ax, contributions)
+
+    ax.set_xticks(range(1, 8))
+    ax.set_xticklabels(['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'])
+    ax.set_yticks(range(0, 15, 3))
+    ax.set_title('Contributions per day of week')
+    fig.tight_layout()
+
+    return fig
+
+
+def add_violins(ax: plt.Axes, data: list) -> plt.Axes:
+    """ Add violins to the axes object """
+    
     vp = ax.violinplot(
         data,
         showmeans = False,
@@ -61,6 +80,11 @@ def plot_contributions(contributions: pd.DataFrame) -> plt.Figure:
         body.set_linewidth(1)
         body.set_alpha(1)
 
+    return ax
+
+def add_raw_data(ax: plt.Axes, data: list) -> plt.Axes:
+    """ Add raw data to the axes object """
+    
     for i, points in enumerate(data):
         ax.scatter(
             [i+1] * len(points),
@@ -71,9 +95,15 @@ def plot_contributions(contributions: pd.DataFrame) -> plt.Figure:
             alpha = 0.25,
             s = 5,
         )
+
+    return ax
+
+def add_means(ax: plt.Axes, contributions: pd.DataFrame) -> plt.Axes:
+    """ Add means to the axes object """
     
-    # plot means of data
     means = contributions.groupby('day_of_week').mean()
+    
+    # raw mean points
     ax.scatter(
         means.index + 1,
         means['contributions'],
@@ -84,10 +114,8 @@ def plot_contributions(contributions: pd.DataFrame) -> plt.Figure:
         alpha = 0.5
     )
 
-    means_list = means['contributions'].to_list()
-
-    # plot smoothed mean
-    smoother = savgol_filter(means_list, 3, 2)
+    # smoothed mean
+    smoother = savgol_filter(means['contributions'].to_list(), 3, 2)
     x_ = np.linspace(1, 7, 100)
     spl = make_interp_spline(means.index + 1, smoother, k=3)
     power_smooth = spl(x_)
@@ -100,15 +128,8 @@ def plot_contributions(contributions: pd.DataFrame) -> plt.Figure:
         alpha = 0.75
     )
 
-    ax.set_xticks(range(1, 8))
-    ax.set_xticklabels(['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'])
-    ax.set_xlabel('day of week')
-    ax.set_yticks(range(0, 15, 3))
-    ax.set_ylabel('contributions')
-    ax.set_title('Contributions per day of week')
-    fig.tight_layout()
+    return ax
 
-    return fig
 
 
 if __name__ == '__main__':
