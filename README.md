@@ -34,3 +34,8 @@ Packages:
 - `matplotlib`
 - `pandas`
 - `scipy`
+
+## License
+
+MIT
+
