@@ -5,13 +5,13 @@ _created on: 28-10-2021_
 ## Description
 
 This project is meant to give you some more insights into your commit behaviour.
-It scrapes your GitHub contribution graph and uses Python to create a graph of your commits throughout the weak based on the past year.
+It scrapes your GitHub contribution graph and uses Python to create a graph of your commits throughout the week based on the past year.
 
 
 ## Example
 
 ![Example](contributions.png)
-last updated on: _28-10-2021_
+last updated on: _30-10-2021_
 
 ## Usage
 
