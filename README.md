@@ -11,7 +11,6 @@ It scrapes your GitHub contribution graph and uses Python to create a graph of y
 ## Example
 
 ![Example](contributions.png)
-last updated on: _30-10-2021_
 
 ## Usage
 
