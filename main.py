@@ -29,6 +29,8 @@ def get_contributions(username: str) -> pd.DataFrame:
     # get contribution graph data
     url = f'https://github.com/{username}'
     html = requests.get(url).text
+    if html == 'Not Found':
+        raise ValueError(f'User "{username}" not found on GitHub')
     soup = BeautifulSoup(html, 'html.parser')
     graph = soup.find('div', {'class': 'js-yearly-contributions'})
     data = graph.find_all('rect', {'class': 'ContributionCalendar-day'})
@@ -42,6 +44,10 @@ def get_contributions(username: str) -> pd.DataFrame:
         date = item.get('data-date')
         if date:
             contributions.loc[date] = n_contributions
+    
+    # check if plotting will work
+    if contributions['contributions'].max() == 0:
+        raise ValueError(f'No contributions for the last year could be found for user: {username}')
     
     # parse dates in index
     contributions.index = pd.to_datetime(contributions.index)
@@ -60,7 +66,7 @@ def plot_contributions(contributions: pd.DataFrame, username: str) -> plt.Figure
         '#ace7ae',  # light green
         '#69c16e',  # slightly darker green
         '#539f57',  # "normal" green
-        '#386c3e'  # dark green
+        '#386c3e'   # dark green
     ]
 
     # create figure
