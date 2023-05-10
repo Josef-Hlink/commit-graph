@@ -38,9 +38,9 @@ def get_contributions(username: str) -> pd.DataFrame:
     contributions = pd.DataFrame(columns=['contributions'], dtype='int64')
     contributions.index.name = 'date'
 
-    # create dataframe
     for item in data:
-        n_contributions = int(item.get('data-count', default=0))
+        if not item.text: continue
+        n_contributions = int(first) if (first := item.text.split(' ')[0]) != 'No' else 0
         date = item.get('data-date')
         if date:
             contributions.loc[date] = n_contributions
@@ -73,7 +73,6 @@ def plot_contributions(contributions: pd.DataFrame, username: str) -> plt.Figure
     fig, ax = plt.subplots(figsize=(5, 3))
 
     ax = add_violins(ax, data, colors)
-    ax = add_raw_data(ax, data)
     ax = add_means(ax, contributions)
     ax = fix_layout(ax, max_contributions)
     ax.set_title(f'Contributions per day of week ({username})')
@@ -92,6 +91,7 @@ def add_violins(ax: plt.Axes, data: list, colors: list[str]) -> plt.Axes:
         showmeans = False,
         showmedians = False,
         showextrema = False,
+        widths = 0.8,
         bw_method = 0.4
     )
 
@@ -106,24 +106,8 @@ def add_violins(ax: plt.Axes, data: list, colors: list[str]) -> plt.Axes:
                 body.set_facecolor(color)
                 break
         body.set_edgecolor('black')
-        body.set_linewidth(1)
+        body.set_linewidth(.5)
         body.set_alpha(1)
-
-    return ax
-
-def add_raw_data(ax: plt.Axes, data: list) -> plt.Axes:
-    """ Add raw data to the axes object """
-    
-    for i, points in enumerate(data):
-        ax.scatter(
-            [i+1] * len(points),
-            points,
-            marker = 'o',
-            color = 'white',
-            edgecolor = 'black',
-            alpha = 0.25,
-            s = 5,
-        )
 
     return ax
 
