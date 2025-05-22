@@ -1,6 +1,8 @@
+import time
 import argparse
 import requests
 from bs4 import BeautifulSoup
+from selenium import webdriver
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
@@ -28,22 +30,34 @@ def get_contributions(username: str) -> pd.DataFrame:
     
     # get contribution graph data
     url = f'https://github.com/{username}'
-    html = requests.get(url).text
+    options = webdriver.ChromeOptions()
+    options.add_argument('--headless')  # Run browser in headless mode
+    driver = webdriver.Chrome(options=options)
+    driver.get(url)
+    time.sleep(3)
+    html = driver.page_source
+    driver.quit()
+
     if html == 'Not Found':
         raise ValueError(f'User "{username}" not found on GitHub')
     soup = BeautifulSoup(html, 'html.parser')
     graph = soup.find('div', {'class': 'js-yearly-contributions'})
-    data = graph.find_all('rect', {'class': 'ContributionCalendar-day'})
+    if not graph:
+        raise ValueError(f'Contribution graph not found for user: {username}')
+    data = graph.find_all('td', {'class': 'ContributionCalendar-day'})
 
     contributions = pd.DataFrame(columns=['contributions'], dtype='int64')
     contributions.index.name = 'date'
 
     for item in data:
-        if not item.text: continue
-        n_contributions = int(first) if (first := item.text.split(' ')[0]) != 'No' else 0
         date = item.get('data-date')
-        if date:
-            contributions.loc[date] = n_contributions
+        tooltip_id = item.get('aria-labelledby')
+        tooltip = soup.find(id=tooltip_id)
+        if not tooltip:
+            raise ValueError(f'Tooltip with id {tooltip_id} not found')
+        tooltip_text = tooltip.get_text(strip=True)
+        n_contributions = int(first) if (first := tooltip_text.split(' ')[0]) != 'No' else 0
+        contributions.loc[date] = n_contributions
     
     # check if plotting will work
     if contributions['contributions'].max() == 0:
