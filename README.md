@@ -28,7 +28,7 @@ python3 main.py <username>
 `Python 3`, of course.
 
 Packages:
-- `requests`
+- `selenium`
 - `beautifulsoup4`
 - `matplotlib`
 - `pandas`
