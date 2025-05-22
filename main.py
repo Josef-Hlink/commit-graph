@@ -8,11 +8,10 @@ import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.patches import Rectangle
 from scipy.interpolate import make_interp_spline
-from scipy.signal import savgol_filter 
+from scipy.signal import savgol_filter
 
 
 def main() -> None:
-    
     parser = argparse.ArgumentParser()
     parser.add_argument('username', type=str, help='Github username')
     args = parser.parse_args()
@@ -21,13 +20,13 @@ def main() -> None:
     contributions = get_contributions(username)
     plot = plot_contributions(contributions, username)
     plot.savefig('contributions.png', dpi=300)
-    
+
     return
 
 
 def get_contributions(username: str) -> pd.DataFrame:
-    """ For a username, get the contributions for last year in the form of a pandas DataFrame """
-    
+    """For a username, get the contributions for last year in the form of a pandas DataFrame"""
+
     # get contribution graph data
     url = f'https://github.com/{username}'
     options = webdriver.ChromeOptions()
@@ -56,21 +55,25 @@ def get_contributions(username: str) -> pd.DataFrame:
         if not tooltip:
             raise ValueError(f'Tooltip with id {tooltip_id} not found')
         tooltip_text = tooltip.get_text(strip=True)
-        n_contributions = int(first) if (first := tooltip_text.split(' ')[0]) != 'No' else 0
+        n_contributions = (
+            int(first) if (first := tooltip_text.split(' ')[0]) != 'No' else 0
+        )
         contributions.loc[date] = n_contributions
-    
+
     # check if plotting will work
     if contributions['contributions'].max() == 0:
-        raise ValueError(f'No contributions for the last year could be found for user: {username}')
-    
+        raise ValueError(
+            f'No contributions for the last year could be found for user: {username}'
+        )
+
     # parse dates in index
     contributions.index = pd.to_datetime(contributions.index)
-    
+
     return contributions
 
 
 def plot_contributions(contributions: pd.DataFrame, username: str) -> plt.Figure:
-    """ Create a violinplot where each day of the week is a body  """
+    """Create a violinplot where each day of the week is a body"""
 
     start, end = contributions.index[0], contributions.index[-1]
     contributions['day_of_week'] = contributions.index.dayofweek
@@ -80,7 +83,7 @@ def plot_contributions(contributions: pd.DataFrame, username: str) -> plt.Figure
         '#ace7ae',  # light green
         '#69c16e',  # slightly darker green
         '#539f57',  # "normal" green
-        '#386c3e'   # dark green
+        '#386c3e',  # dark green
     ]
 
     # create figure
@@ -90,23 +93,23 @@ def plot_contributions(contributions: pd.DataFrame, username: str) -> plt.Figure
     ax = add_means(ax, contributions)
     ax = fix_layout(ax, max_contributions)
     ax.set_title(f'Contributions per day of week ({username})')
-    
+
     fig = add_timeframe(fig, start, end)
     fig.tight_layout()
-    
+
     return fig
 
 
 def add_violins(ax: plt.Axes, data: list, colors: list[str]) -> plt.Axes:
-    """ Add violins to the axes object """
-    
+    """Add violins to the axes object"""
+
     vp = ax.violinplot(
         data,
-        showmeans = False,
-        showmedians = False,
-        showextrema = False,
-        widths = 0.8,
-        bw_method = 0.4
+        showmeans=False,
+        showmedians=False,
+        showextrema=False,
+        widths=0.8,
+        bw_method=0.4,
     )
 
     means = [np.mean(d) for d in data]
@@ -120,25 +123,26 @@ def add_violins(ax: plt.Axes, data: list, colors: list[str]) -> plt.Axes:
                 body.set_facecolor(color)
                 break
         body.set_edgecolor('black')
-        body.set_linewidth(.5)
+        body.set_linewidth(0.5)
         body.set_alpha(1)
 
     return ax
 
+
 def add_means(ax: plt.Axes, contributions: pd.DataFrame) -> plt.Axes:
-    """ Add means to the axes object """
-    
+    """Add means to the axes object"""
+
     means = contributions.groupby('day_of_week').mean()
-    
+
     # raw mean points
     ax.scatter(
         means.index + 1,
         means['contributions'],
-        marker = 'o',
-        color = 'darkgrey',
-        edgecolor = 'black',
-        s = 25,
-        alpha = 0.5
+        marker='o',
+        color='darkgrey',
+        edgecolor='black',
+        s=25,
+        alpha=0.5,
     )
 
     # smoothed mean
@@ -146,27 +150,21 @@ def add_means(ax: plt.Axes, contributions: pd.DataFrame) -> plt.Axes:
     x_ = np.linspace(1, 7, 100)
     spl = make_interp_spline(means.index + 1, smoother, k=3)
     power_smooth = spl(x_)
-    ax.plot(
-        x_,
-        power_smooth,
-        color = 'black',
-        linewidth = 1,
-        linestyle = '--',
-        alpha = 0.75
-    )
+    ax.plot(x_, power_smooth, color='black', linewidth=1, linestyle='--', alpha=0.75)
 
     return ax
 
+
 def fix_layout(ax: plt.Axes, max_c: int) -> plt.Axes:
-    """ Fix the layout of the axes object """
-    
+    """Fix the layout of the axes object"""
+
     # background
     ax.set_facecolor('#ebedf0')
     for spine in ax.spines.values():
         spine.set_visible(False)
     ax.set_axisbelow(True)
     ax.yaxis.grid(color='white', linestyle='-', linewidth=2)
-    
+
     # axes ticks & labels
     ax.set_xticks(range(1, 8))
     ax.set_xticklabels(['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'])
@@ -175,29 +173,23 @@ def fix_layout(ax: plt.Axes, max_c: int) -> plt.Axes:
     ax.set_xlim(0.5, 7.5)
     ax.set_ylim(-(stepsize / 4), max_c + stepsize // 2)
     ax.set_yticks(range(0, max_c, stepsize))
-    ax.tick_params(
-        axis = 'both',
-        bottom = False,
-        left = False
-    )
+    ax.tick_params(axis='both', bottom=False, left=False)
 
     # white rect to "remove" grey area below y=0
     ax.add_patch(
         Rectangle(
-            (0, -stepsize),
-            8,
-            stepsize,
-            facecolor = 'white',
-            edgecolor = 'none',
-            zorder = -1
+            (0, -stepsize), 8, stepsize, facecolor='white', edgecolor='none', zorder=-1
         )
     )
 
     return ax
 
-def add_timeframe(fig: plt.Figure, start: pd.Timestamp, end: pd.Timestamp) -> plt.Figure:
-    """ Add a timeframe box to the figure """
-    
+
+def add_timeframe(
+    fig: plt.Figure, start: pd.Timestamp, end: pd.Timestamp
+) -> plt.Figure:
+    """Add a timeframe box to the figure"""
+
     fig.text(
         0.01,
         0.01,
@@ -207,11 +199,7 @@ def add_timeframe(fig: plt.Figure, start: pd.Timestamp, end: pd.Timestamp) -> pl
         horizontalalignment='left',
         verticalalignment='bottom',
         # center text in textbox
-        bbox=dict(
-            facecolor='black',
-            edgecolor='gray',
-            boxstyle='round, pad=0.2'
-        )
+        bbox=dict(facecolor='black', edgecolor='gray', boxstyle='round, pad=0.2'),
     )
 
     return fig
